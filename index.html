@@ -39,6 +39,7 @@
       --slip: #fdf8ec;
       --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
       --focus: #8ab4f8;
+      color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
@@ -54,12 +55,15 @@
     --slip: #fdf8ec;
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
     --focus: #8ab4f8;
+    color-scheme: dark;
   }
 
   * { box-sizing: border-box; }
   html, body { margin: 0; }
   body {
     min-height: 100vh;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
     background-color: var(--bg);
     background-image: radial-gradient(var(--bg-dots) 2px, transparent 2px);
     background-size: 22px 22px;
@@ -70,14 +74,14 @@
   button, input { font: inherit; color: inherit; }
   :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 
-  header { text-align: center; padding: 28px 16px 8px; }
+  header { text-align: center; padding-block: 28px 8px; }
   h1 { margin: 0; font-size: clamp(1.8rem, 5vw, 2.6rem); letter-spacing: -0.02em; }
   header p { margin: 6px 0 0; color: var(--muted); }
 
   main {
     max-width: 960px;
     margin: 0 auto;
-    padding: 16px;
+    padding-block: 16px 32px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 32px;
@@ -295,6 +299,7 @@
   }
   .list-head { display: flex; justify-content: space-between; align-items: center; margin: 18px 0 8px; }
   .count { font-weight: 700; color: var(--muted); font-size: 0.9rem; }
+  .link-btn.armed { color: var(--accent); font-weight: 800; }
   .link-btn { background: none; border: none; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 0.85rem; padding: 4px; }
   ul.ideas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
   ul.ideas li {
@@ -463,6 +468,7 @@
   const COLORS = ['#ff6b6b', '#ffa94d', '#ffd43b', '#69db7c', '#4dabf7', '#9775fa', '#f783ac', '#38d9a9'];
   const BALL = 40;
   const DOME_INNER = 268; // dome size minus its border
+  const EXAMPLES = ['Cook a dish from a country you have never visited', 'Go on a sunrise walk', 'Write a letter to your future self', 'Learn three chords on a ukulele', 'Rearrange your room', 'Try a new board game'];
 
   const $ = (id) => document.getElementById(id);
   const machine = $('machine');
@@ -482,6 +488,7 @@
   const capsule = $('capsule');
   const revealText = $('revealText');
 
+  let seeded = false; // true when showing the starter examples
   let ideas = load();
   let knobAngle = 0;
   let busy = false;
@@ -515,7 +522,8 @@
       const parsed = raw ? JSON.parse(raw) : null;
       if (Array.isArray(parsed)) return parsed.filter((i) => i && typeof i.text === 'string');
     } catch (e) { /* storage unavailable */ }
-    return [];
+    seeded = true;
+    return EXAMPLES.map((text, i) => ({ id: 'example-' + i, text, color: COLORS[i % COLORS.length] }));
   }
 
   function save() {
@@ -706,14 +714,27 @@
     setStatus(ideas.length === 1 ? 'Your first capsule is in. Turn the crank!' : '');
   });
 
+  let clearTimer;
   clearBtn.addEventListener('click', () => {
-    if (!confirm('Empty the machine? This removes every idea.')) return;
+    if (!clearBtn.classList.contains('armed')) {
+      clearBtn.classList.add('armed');
+      clearBtn.textContent = 'Tap again to empty the machine';
+      clearTimer = setTimeout(disarmClear, 3000);
+      return;
+    }
+    disarmClear();
     ideas = [];
     clearTray();
     save();
     render();
     setStatus('');
   });
+
+  function disarmClear() {
+    clearTimeout(clearTimer);
+    clearBtn.classList.remove('armed');
+    clearBtn.textContent = 'Clear all';
+  }
 
   knob.addEventListener('click', turn);
   turnBtn.addEventListener('click', turn);
@@ -724,6 +745,7 @@
   dialog.addEventListener('click', (e) => { if (e.target === dialog) closeCapsule(false); });
 
   render();
+  if (seeded) setStatus('These are example ideas. Add your own, or clear them out.');
 })();
 </script>
 </body>

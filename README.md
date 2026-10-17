@@ -10,4 +10,4 @@ It's a single static file with no build step and no dependencies. Open `index.ht
 python3 -m http.server 8000
 ```
 
-Ideas are saved in your browser's `localStorage`, so they stay between visits on the same device.
+The first visit starts with a few example ideas. Ideas are saved in your browser's `localStorage`, so they stay between visits on the same device.
