@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Idea Gachapon</title>
+<style>
+  :root {
+    --bg: #fbf3e4;
+    --bg-dots: #f1e2c6;
+    --panel: #fffaf0;
+    --text: #2b2118;
+    --muted: #7a6a58;
+    --border: #e7d6b8;
+    --accent: #e5484d;
+    --accent-dark: #b8343a;
+    --accent-text: #ffffff;
+    --machine: #e5484d;
+    --machine-dark: #b8343a;
+    --machine-light: #f2777b;
+    --glass: rgba(220, 240, 255, 0.35);
+    --glass-edge: rgba(255, 255, 255, 0.9);
+    --chute: #3a2a22;
+    --slip: #fffdf6;
+    --shadow: 0 10px 30px rgba(80, 50, 20, 0.15);
+    --focus: #2b6cb0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1b1a24;
+      --bg-dots: #24232f;
+      --panel: #25242f;
+      --text: #f2ede6;
+      --muted: #a8a0b4;
+      --border: #3a3846;
+      --glass: rgba(160, 190, 230, 0.12);
+      --glass-edge: rgba(255, 255, 255, 0.35);
+      --chute: #0f0e14;
+      --slip: #fdf8ec;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      --focus: #8ab4f8;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1b1a24;
+    --bg-dots: #24232f;
+    --panel: #25242f;
+    --text: #f2ede6;
+    --muted: #a8a0b4;
+    --border: #3a3846;
+    --glass: rgba(160, 190, 230, 0.12);
+    --glass-edge: rgba(255, 255, 255, 0.35);
+    --chute: #0f0e14;
+    --slip: #fdf8ec;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    --focus: #8ab4f8;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--bg-dots) 2px, transparent 2px);
+    background-size: 22px 22px;
+    color: var(--text);
+    font-family: ui-rounded, "SF Pro Rounded", "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.4;
+  }
+  button, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+
+  header { text-align: center; padding: 28px 16px 8px; }
+  h1 { margin: 0; font-size: clamp(1.8rem, 5vw, 2.6rem); letter-spacing: -0.02em; }
+  header p { margin: 6px 0 0; color: var(--muted); }
+
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 32px;
+    align-items: start;
+  }
+  @media (max-width: 760px) {
+    main { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  }
+
+  /* ---------- Machine ---------- */
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .machine {
+    position: relative;
+    width: 300px;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    filter: drop-shadow(0 14px 20px rgba(60, 30, 10, 0.25));
+  }
+  .machine.shaking { animation: rattle 0.12s linear 7; }
+  .machine.nope { animation: nope 0.45s ease; }
+  @keyframes rattle {
+    0%, 100% { transform: translateX(0) rotate(0); }
+    25% { transform: translateX(-3px) rotate(-1deg); }
+    75% { transform: translateX(3px) rotate(1deg); }
+  }
+  @keyframes nope {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+  }
+
+  .cap {
+    width: 120px; height: 26px;
+    background: linear-gradient(var(--machine-light), var(--machine));
+    border-radius: 14px 14px 4px 4px;
+    margin-bottom: -6px;
+    position: relative; z-index: 2;
+  }
+  .dome {
+    position: relative;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: var(--glass);
+    border: 6px solid var(--glass-edge);
+    box-shadow: inset 0 -20px 40px rgba(0, 0, 0, 0.08), inset 0 0 0 2px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    z-index: 1;
+  }
+  .glare {
+    position: absolute; left: 34px; top: 30px;
+    width: 70px; height: 110px;
+    border-radius: 50%;
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0));
+    transform: rotate(25deg);
+    pointer-events: none;
+  }
+  .empty-dome {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 60px;
+    color: var(--muted); font-size: 0.95rem;
+  }
+  .empty-dome[hidden] { display: none; }
+  .balls { position: absolute; inset: 0; }
+
+  .ball {
+    --c: #ff6b6b;
+    position: absolute;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.85) 0 4px, rgba(255, 255, 255, 0) 9px),
+      linear-gradient(to bottom, var(--c) 0 50%, #f6f3ee 50% 100%);
+    box-shadow: inset -3px -4px 6px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.2);
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  .ball::after {
+    content: ""; position: absolute; left: 0; right: 0; top: calc(50% - 1px);
+    height: 2px; background: rgba(0, 0, 0, 0.15);
+  }
+  .ball.gone { opacity: 0; transform: scale(0.4) translateY(40px); }
+  .machine.shaking .balls .ball { animation: jiggle 0.25s ease-in-out infinite alternate; }
+  @keyframes jiggle {
+    from { translate: 0 0; }
+    to { translate: var(--jx, 3px) var(--jy, -6px); }
+  }
+
+  .body {
+    position: relative;
+    width: 240px; height: 190px;
+    margin-top: -18px;
+    background: linear-gradient(90deg, var(--machine-dark), var(--machine) 30%, var(--machine-light) 55%, var(--machine) 80%, var(--machine-dark));
+    border-radius: 14px 14px 22px 22px;
+    z-index: 2;
+  }
+  .body::before {
+    content: ""; position: absolute; left: -10px; right: -10px; top: 0; height: 18px;
+    background: linear-gradient(var(--machine-light), var(--machine));
+    border-radius: 10px;
+  }
+  .plate {
+    position: absolute; top: 30px; left: 18px;
+    padding: 6px 10px;
+    background: #fff6dc;
+    color: #6b3b1a;
+    border-radius: 8px;
+    font-weight: 800; font-size: 0.75rem; letter-spacing: 0.06em;
+    box-shadow: inset 0 0 0 2px #e9c98c;
+  }
+  .knob {
+    position: absolute; top: 26px; right: 22px;
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    border: none;
+    background: radial-gradient(circle at 40% 35%, #ffffff, #dcdcdc 60%, #b9b9b9);
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    transition: transform 0.9s cubic-bezier(0.5, 0, 0.3, 1.2);
+  }
+  .knob:active { box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.15); }
+  .knob .bar {
+    position: absolute; left: 50%; top: 8px; bottom: 8px; width: 18px;
+    transform: translateX(-50%);
+    border-radius: 9px;
+    background: linear-gradient(90deg, #9a9a9a, #e8e8e8 50%, #9a9a9a);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+  .knob-hint {
+    position: absolute; top: 106px; right: 14px; width: 92px;
+    text-align: center; font-size: 0.7rem; font-weight: 700;
+    color: #fff; opacity: 0.9; letter-spacing: 0.04em;
+  }
+  .chute {
+    position: absolute; left: 22px; bottom: 22px;
+    width: 96px; height: 70px;
+    border-radius: 12px 12px 18px 18px;
+    background: var(--chute);
+    box-shadow: inset 0 8px 12px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+  }
+  .chute::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    z-index: 2;
+  }
+  .tray-ball {
+    position: absolute; left: 50%; bottom: 6px;
+    width: 52px; height: 52px; margin-left: -26px;
+    border: none; padding: 0;
+    cursor: pointer;
+    display: none;
+  }
+  .tray-ball.show { display: block; animation: drop 0.7s cubic-bezier(0.3, 0, 0.5, 1) both; }
+  .tray-ball.show:hover { filter: brightness(1.08); }
+  @keyframes drop {
+    0% { transform: translateY(-90px) rotate(0); }
+    60% { transform: translateY(0) rotate(200deg); }
+    75% { transform: translateY(-12px) rotate(230deg); }
+    100% { transform: translateY(0) rotate(250deg); }
+  }
+  .tray-ball.show.idle { animation: wobble 1.6s ease-in-out infinite; transform: rotate(250deg); }
+  @keyframes wobble {
+    0%, 100% { transform: rotate(250deg); }
+    50% { transform: rotate(262deg) translateY(-2px); }
+  }
+  .feet { display: flex; justify-content: space-between; width: 200px; margin-top: -4px; }
+  .feet span { width: 30px; height: 12px; background: var(--machine-dark); border-radius: 0 0 8px 8px; }
+
+  .status {
+    min-height: 1.5em;
+    text-align: center;
+    font-weight: 700;
+    color: var(--muted);
+  }
+  .turn-btn {
+    border: none;
+    border-radius: 999px;
+    padding: 12px 26px;
+    background: var(--accent);
+    color: var(--accent-text);
+    font-weight: 800;
+    font-size: 1.05rem;
+    box-shadow: 0 4px 0 var(--accent-dark);
+    cursor: pointer;
+  }
+  .turn-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--accent-dark); }
+  .turn-btn:disabled { opacity: 0.6; cursor: default; }
+
+  /* ---------- Ideas panel ---------- */
+  .panel {
+    background: var(--panel);
+    border: 2px solid var(--border);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  .panel h2 { margin: 0 0 4px; font-size: 1.3rem; }
+  .panel .sub { margin: 0 0 14px; color: var(--muted); font-size: 0.92rem; }
+  form { display: flex; gap: 8px; }
+  form input {
+    flex: 1; min-width: 0;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: var(--bg);
+  }
+  form button {
+    border: none; border-radius: 12px;
+    padding: 0 18px;
+    background: var(--accent); color: var(--accent-text);
+    font-weight: 800; cursor: pointer;
+  }
+  .list-head { display: flex; justify-content: space-between; align-items: center; margin: 18px 0 8px; }
+  .count { font-weight: 700; color: var(--muted); font-size: 0.9rem; }
+  .link-btn { background: none; border: none; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 0.85rem; padding: 4px; }
+  ul.ideas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
+  ul.ideas li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 10px 10px 12px;
+    border-radius: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    animation: pop 0.25s ease;
+  }
+  @keyframes pop { from { transform: scale(0.95); opacity: 0; } }
+  ul.ideas .dot {
+    flex: none; width: 16px; height: 16px; border-radius: 50%;
+    background: linear-gradient(to bottom, var(--c) 0 50%, #f6f3ee 50% 100%);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+  }
+  ul.ideas .text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  ul.ideas .del {
+    flex: none; width: 30px; height: 30px; border-radius: 50%;
+    border: none; background: transparent; color: var(--muted);
+    font-size: 1.2rem; line-height: 1; cursor: pointer;
+  }
+  ul.ideas .del:hover { background: var(--border); color: var(--text); }
+  .empty-list { color: var(--muted); font-style: italic; padding: 8px 2px; }
+
+  /* ---------- Reveal dialog ---------- */
+  dialog {
+    border: none; padding: 0; background: transparent;
+    width: min(420px, calc(100vw - 32px));
+    max-width: none;
+    overflow: visible;
+    color: var(--text);
+  }
+  dialog::backdrop { background: rgba(20, 12, 6, 0.55); backdrop-filter: blur(3px); }
+  .reveal { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 10px 0; }
+  .capsule { position: relative; width: 160px; height: 160px; }
+  .half {
+    position: absolute; left: 0; width: 160px; height: 80px; overflow: hidden;
+    transition: transform 0.7s cubic-bezier(0.3, 1.4, 0.5, 1);
+  }
+  .half::before {
+    content: ""; position: absolute; left: 0; width: 160px; height: 160px; border-radius: 50%;
+    box-shadow: inset -8px -10px 16px rgba(0, 0, 0, 0.18);
+  }
+  .half.top { top: 0; }
+  .half.top::before {
+    top: 0;
+    background:
+      radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.85) 0 10px, rgba(255, 255, 255, 0) 26px),
+      var(--c);
+  }
+  .half.bottom { top: 80px; }
+  .half.bottom::before { top: -80px; background: #f6f3ee; }
+  .reveal.opened .half.top { transform: translate(-70px, -40px) rotate(-35deg); }
+  .reveal.opened .half.bottom { transform: translate(70px, 30px) rotate(25deg); }
+  .slip {
+    position: absolute; left: 50%; top: 50%;
+    width: 300px; max-width: calc(100vw - 48px);
+    padding: 22px 20px;
+    background: var(--slip);
+    color: #2b2118;
+    border-radius: 6px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+    text-align: center;
+    transform: translate(-50%, -50%) scale(0.1) rotate(-8deg);
+    opacity: 0;
+    transition: transform 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) 0.35s, opacity 0.2s 0.35s;
+    background-image: repeating-linear-gradient(transparent 0 27px, rgba(80, 120, 200, 0.12) 27px 28px);
+  }
+  .slip small { display: block; font-weight: 800; font-size: 0.72rem; letter-spacing: 0.12em; color: #b8343a; margin-bottom: 8px; }
+  .slip p { margin: 0; font-size: 1.35rem; font-weight: 800; overflow-wrap: anywhere; }
+  .reveal.opened .slip { transform: translate(-50%, -50%) scale(1) rotate(-2deg); opacity: 1; }
+  .actions {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+    opacity: 0; transition: opacity 0.3s 0.8s;
+    margin-top: 40px;
+  }
+  .reveal.opened .actions { opacity: 1; }
+  .actions button {
+    border: none; border-radius: 999px; padding: 10px 18px; font-weight: 800; cursor: pointer;
+  }
+  .actions .primary { background: var(--accent); color: var(--accent-text); box-shadow: 0 3px 0 var(--accent-dark); }
+  .actions .secondary { background: #fffaf0; color: #2b2118; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25); }
+
+  .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 10; }
+  .confetti i {
+    position: absolute; top: 45%; left: 50%; width: 8px; height: 12px; border-radius: 2px;
+    animation: burst 1.1s ease-out forwards;
+  }
+  @keyframes burst {
+    to { transform: translate(var(--dx), var(--dy)) rotate(var(--r)); opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; transition-delay: 0s !important; }
+  }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Idea Gachapon</h1>
+  <p>Fill the machine with ideas, turn the crank, see what you get.</p>
+</header>
+
+<main>
+  <section class="stage" aria-label="Gachapon machine">
+    <div class="machine" id="machine">
+      <div class="cap"></div>
+      <div class="dome">
+        <div class="balls" id="balls"></div>
+        <div class="empty-dome" id="emptyDome">The machine is empty. Add a few ideas.</div>
+        <div class="glare"></div>
+      </div>
+      <div class="body">
+        <div class="plate">IDEA ガチャ</div>
+        <button class="knob" id="knob" aria-label="Turn the crank"><span class="bar"></span></button>
+        <div class="knob-hint">TURN ME</div>
+        <div class="chute">
+          <button class="tray-ball ball" id="trayBall" aria-label="Open the capsule"></button>
+        </div>
+      </div>
+      <div class="feet"><span></span><span></span></div>
+    </div>
+    <div class="status" id="status" aria-live="polite"></div>
+    <button class="turn-btn" id="turnBtn">Turn the crank</button>
+  </section>
+
+  <section class="panel" aria-labelledby="ideasHeading">
+    <h2 id="ideasHeading">Your ideas</h2>
+    <p class="sub">Each idea goes into its own capsule.</p>
+    <form id="addForm" autocomplete="off">
+      <label for="ideaInput" class="sr-only">New idea</label>
+      <input id="ideaInput" maxlength="140" placeholder="e.g. Learn to make dumplings" required>
+      <button type="submit">Add</button>
+    </form>
+    <div class="list-head">
+      <span class="count" id="count">0 capsules</span>
+      <button class="link-btn" id="clearBtn" type="button">Clear all</button>
+    </div>
+    <ul class="ideas" id="ideaList"></ul>
+  </section>
+</main>
+
+<dialog id="revealDialog" aria-label="Your idea">
+  <div class="reveal" id="reveal">
+    <div class="capsule" id="capsule">
+      <div class="half top"></div>
+      <div class="half bottom"></div>
+      <div class="slip">
+        <small>YOU GOT</small>
+        <p id="revealText"></p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="secondary" id="keepBtn" type="button">Put it back</button>
+      <button class="primary" id="removeBtn" type="button">Take it out of the machine</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(() => {
+  const STORAGE_KEY = 'idea-gachapon:ideas';
+  const COLORS = ['#ff6b6b', '#ffa94d', '#ffd43b', '#69db7c', '#4dabf7', '#9775fa', '#f783ac', '#38d9a9'];
+  const BALL = 40;
+  const DOME_INNER = 268; // dome size minus its border
+
+  const $ = (id) => document.getElementById(id);
+  const machine = $('machine');
+  const ballsEl = $('balls');
+  const emptyDome = $('emptyDome');
+  const knob = $('knob');
+  const turnBtn = $('turnBtn');
+  const trayBall = $('trayBall');
+  const statusEl = $('status');
+  const form = $('addForm');
+  const input = $('ideaInput');
+  const list = $('ideaList');
+  const countEl = $('count');
+  const clearBtn = $('clearBtn');
+  const dialog = $('revealDialog');
+  const reveal = $('reveal');
+  const capsule = $('capsule');
+  const revealText = $('revealText');
+
+  let ideas = load();
+  let knobAngle = 0;
+  let busy = false;
+  let dispensed = null; // the idea sitting in the tray
+  let lastId = null;
+
+  // Slots where balls rest inside the dome, filled bottom-up from the centre outwards.
+  const SLOTS = (() => {
+    const r = DOME_INNER / 2;
+    const fit = r - BALL / 2 - 2;
+    const slots = [];
+    for (let row = 0; ; row++) {
+      const y = r + fit - 14 - row * BALL * 0.82; // the base hides the dome's lowest edge
+      const dy = y - r;
+      if (dy < -fit * 0.35) break; // leave the top of the dome clear
+      const half = Math.sqrt(Math.max(0, fit * fit - dy * dy));
+      const n = Math.max(1, Math.floor((half * 2) / (BALL * 0.92)) + 1);
+      const step = n > 1 ? (half * 2) / (n - 1) : 0;
+      const offset = row % 2 ? step / 4 : 0;
+      const rowSlots = [];
+      for (let i = 0; i < n; i++) rowSlots.push({ x: r - half + i * step + offset, y });
+      rowSlots.sort((a, b) => Math.abs(a.x - r) - Math.abs(b.x - r));
+      slots.push(...rowSlots);
+    }
+    return slots.map((s) => ({ x: Math.min(Math.max(s.x, BALL / 2), DOME_INNER - BALL / 2), y: s.y }));
+  })();
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (Array.isArray(parsed)) return parsed.filter((i) => i && typeof i.text === 'string');
+    } catch (e) { /* storage unavailable */ }
+    return [];
+  }
+
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas)); } catch (e) { /* storage unavailable */ }
+  }
+
+  function hash(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+    return Math.abs(h);
+  }
+
+  function setStatus(msg) { statusEl.textContent = msg; }
+
+  function renderBalls() {
+    ballsEl.innerHTML = '';
+    emptyDome.hidden = ideas.length > 0;
+    const shown = ideas.slice(0, SLOTS.length);
+    shown.forEach((idea, i) => {
+      const s = SLOTS[i];
+      const h = hash(idea.id);
+      const b = document.createElement('div');
+      b.className = 'ball';
+      b.dataset.id = idea.id;
+      b.style.setProperty('--c', idea.color);
+      b.style.setProperty('--jx', ((h % 9) - 4) + 'px');
+      b.style.setProperty('--jy', (-3 - (h % 7)) + 'px');
+      b.style.left = (s.x - BALL / 2 + ((h % 5) - 2)) + 'px';
+      b.style.top = (s.y - BALL / 2) + 'px';
+      b.style.transform = `rotate(${h % 360}deg)`;
+      b.style.animationDelay = `-${(h % 250) / 1000}s`;
+      if (dispensed && dispensed.id === idea.id) b.classList.add('gone');
+      ballsEl.appendChild(b);
+    });
+  }
+
+  function renderList() {
+    list.innerHTML = '';
+    countEl.textContent = `${ideas.length} capsule${ideas.length === 1 ? '' : 's'}`;
+    clearBtn.hidden = ideas.length === 0;
+    if (!ideas.length) {
+      const li = document.createElement('li');
+      li.className = 'empty-list';
+      li.style.border = 'none';
+      li.style.background = 'none';
+      li.textContent = 'No ideas yet.';
+      list.appendChild(li);
+      return;
+    }
+    ideas.slice().reverse().forEach((idea) => {
+      const li = document.createElement('li');
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      dot.style.setProperty('--c', idea.color);
+      const text = document.createElement('span');
+      text.className = 'text';
+      text.textContent = idea.text;
+      const del = document.createElement('button');
+      del.className = 'del';
+      del.type = 'button';
+      del.textContent = '×';
+      del.setAttribute('aria-label', `Remove "${idea.text}"`);
+      del.addEventListener('click', () => removeIdea(idea.id));
+      li.append(dot, text, del);
+      list.appendChild(li);
+    });
+  }
+
+  function render() {
+    renderBalls();
+    renderList();
+  }
+
+  function addIdea(text) {
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const color = COLORS[(ideas.length + hash(text)) % COLORS.length];
+    ideas.push({ id, text, color });
+    save();
+    render();
+  }
+
+  function removeIdea(id) {
+    ideas = ideas.filter((i) => i.id !== id);
+    if (dispensed && dispensed.id === id) clearTray();
+    save();
+    render();
+  }
+
+  function clearTray() {
+    dispensed = null;
+    trayBall.className = 'tray-ball ball';
+  }
+
+  function pick() {
+    if (ideas.length === 1) return ideas[0];
+    let choice;
+    do { choice = ideas[Math.floor(Math.random() * ideas.length)]; } while (choice.id === lastId);
+    return choice;
+  }
+
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  async function turn() {
+    if (busy) return;
+    if (!ideas.length) {
+      machine.classList.remove('nope');
+      void machine.offsetWidth;
+      machine.classList.add('nope');
+      setStatus('Nothing inside yet. Add some ideas first!');
+      input.focus();
+      return;
+    }
+    busy = true;
+    turnBtn.disabled = true;
+    clearTray();
+    renderBalls();
+    setStatus('Ka-chunk…');
+
+    knobAngle += 360;
+    knob.style.transform = `rotate(${knobAngle}deg)`;
+    machine.classList.add('shaking');
+    await wait(900);
+    machine.classList.remove('shaking');
+
+    dispensed = pick();
+    lastId = dispensed.id;
+    const domeBall = ballsEl.querySelector(`[data-id="${CSS.escape(dispensed.id)}"]`);
+    if (domeBall) domeBall.classList.add('gone');
+
+    trayBall.style.setProperty('--c', dispensed.color);
+    trayBall.className = 'tray-ball ball show';
+    await wait(700);
+    trayBall.classList.add('idle');
+    setStatus('A capsule dropped! Tap it to open.');
+    busy = false;
+    turnBtn.disabled = false;
+  }
+
+  function confetti() {
+    const wrap = document.createElement('div');
+    wrap.className = 'confetti';
+    for (let i = 0; i < 40; i++) {
+      const c = document.createElement('i');
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 140 + Math.random() * 220;
+      c.style.background = COLORS[i % COLORS.length];
+      c.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+      c.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+      c.style.setProperty('--r', Math.random() * 720 + 'deg');
+      wrap.appendChild(c);
+    }
+    document.body.appendChild(wrap);
+    setTimeout(() => wrap.remove(), 1300);
+  }
+
+  function openCapsule() {
+    if (!dispensed) return;
+    capsule.style.setProperty('--c', dispensed.color);
+    revealText.textContent = dispensed.text;
+    reveal.classList.remove('opened');
+    dialog.showModal();
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      reveal.classList.add('opened');
+      setTimeout(confetti, 300);
+    }));
+  }
+
+  function closeCapsule(removeIt) {
+    const idea = dispensed;
+    dialog.close();
+    clearTray();
+    if (removeIt && idea) {
+      removeIdea(idea.id);
+      setStatus(`"${idea.text}" is yours. Go do it!`);
+    } else {
+      renderBalls();
+      setStatus(idea ? 'Back in the machine it goes. Turn again?' : '');
+    }
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    addIdea(text);
+    input.value = '';
+    input.focus();
+    setStatus(ideas.length === 1 ? 'Your first capsule is in. Turn the crank!' : '');
+  });
+
+  clearBtn.addEventListener('click', () => {
+    if (!confirm('Empty the machine? This removes every idea.')) return;
+    ideas = [];
+    clearTray();
+    save();
+    render();
+    setStatus('');
+  });
+
+  knob.addEventListener('click', turn);
+  turnBtn.addEventListener('click', turn);
+  trayBall.addEventListener('click', openCapsule);
+  $('keepBtn').addEventListener('click', () => closeCapsule(false));
+  $('removeBtn').addEventListener('click', () => closeCapsule(true));
+  dialog.addEventListener('cancel', (e) => { e.preventDefault(); closeCapsule(false); });
+  dialog.addEventListener('click', (e) => { if (e.target === dialog) closeCapsule(false); });
+
+  render();
+})();
+</script>
+</body>
+</html>
